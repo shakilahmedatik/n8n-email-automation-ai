@@ -1,0 +1,38 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n-local
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - NODE_ENV=production
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-Asia/Dhaka}
+      - TZ=${TZ:-Asia/Dhaka}
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+      # Execution history pruning (prevents database from ballooning during testing)
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=168
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=50000
+      # Allow code nodes to use built-in & external libraries
+      - NODE_FUNCTION_ALLOW_BUILTIN=*
+      - NODE_FUNCTION_ALLOW_EXTERNAL=*
+      # Optional: set encryption key for reproducible credential backups
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./local-files:/files
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:5678/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  n8n_data:
+    name: n8n_local_data

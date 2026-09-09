@@ -1,0 +1,8 @@
+# Environment variables
+.env
+
+# Local directory mounted in n8n for test files
+local-files/
+
+# macOS system files
+.DS_Store
