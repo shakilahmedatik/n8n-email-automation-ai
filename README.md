@@ -35,14 +35,14 @@ flowchart TD
     
     %% Dashboard Interaction
     G --> H([👨‍💻 Human Review in Next.js Dashboard CRM])
-    H -->|Approve / Edit & Send| I[Webhook to n8n]
+    H -->|"Approve, Edit, or Send"| I[Webhook to n8n]
     I --> J[✉️ Send Final Reply\nGmail Threaded Reply]
 
     %% Spam Branch
     C -->|SPAM| K[🗑️ Route to Dashboard Spam Folder]
     
     %% No-Reply Branch
-    C -->|NO_REPLY / Fallback| M[📁 Log No Reply\nSet Node Audit Trail]
+    C -->|"NO_REPLY / Fallback"| M[📁 Log No Reply\nSet Node Audit Trail]
 ```
 
 ---
