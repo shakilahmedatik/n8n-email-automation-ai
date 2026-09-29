@@ -14,6 +14,7 @@ An intelligent, production-ready system combining an **n8n** automation workflow
 - [n8n Configuration & Workflow Setup](#-n8n-configuration--workflow-setup)
 - [Dashboard Usage](#-dashboard-usage)
 - [✏️ Customizing the AI System Prompt (Business Profile)](#️-customizing-the-ai-system-prompt-business-profile)
+- [🧪 Step-by-Step Testing & Verification](#-step-by-step-testing--verification)
 - [Directory Structure](#-directory-structure)
 
 ---
