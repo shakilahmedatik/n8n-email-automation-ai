@@ -233,8 +233,7 @@ The **AI Email Analyzer** node contains a system prompt with two sections you mu
 ├── final_workflow.json      # Unified n8n workflow for AI Email Automation
 ├── dashboard/               # Next.js web application (Admin Dashboard CRM)
 ├── README.md                # This documentation file
-├── .env.example             # Template for root environment variables
-└── local-files/             # Mounted directory for n8n local file access
+└── .env.example             # Template for root environment variables
 ```
 
 ---
