@@ -167,6 +167,64 @@ The **AI Email Analyzer** node contains a system prompt with two sections you mu
 
 ---
 
+## 🧪 Step-by-Step Testing & Verification
+
+### Test 1: Safe Routine Inquiry (AUTO_REPLY)
+- **Action**: Send an email to your connected Gmail address:
+  - **Subject**: `Question about office hours`
+  - **Body**: `Hello, could you please confirm what time your office opens on Monday? Thanks!`
+- **Expected Outcome**:
+  - Classified as `AUTO_REPLY`.
+  - Gmail sends an automatic reply in the same thread.
+  - Telegram receives notification: `🤖 Auto-Reply Sent`.
+
+### Test 2: Quotation & Pricing (HUMAN_APPROVAL -> Approve)
+- **Action**: Send an email:
+  - **Subject**: `Enterprise Quote Request`
+  - **Body**: `Hi team, we would like to get a formal price quote for 50 enterprise seats with contract terms.`
+- **Expected Outcome**:
+  - Classified as `HUMAN_APPROVAL`.
+  - Telegram receives `🔔 Human Approval Required` notification.
+  - Admin logs into Dashboard CRM, reviews the draft, and clicks **Approve & Send**.
+  - n8n receives the webhook and Gmail sends the approved response in the thread.
+
+### Test 3: Commercial Negotiation (HUMAN_APPROVAL -> Edit & Send)
+- **Action**: Send an email:
+  - **Subject**: `Proposal Discussion`
+  - **Body**: `Can you offer a 25% discount if we sign an annual contract today?`
+- **Expected Outcome**:
+  - Classified as `HUMAN_APPROVAL`.
+  - Admin logs into Dashboard CRM, edits the draft response to specify customized terms, and clicks **Approve & Send**.
+  - Gmail sends the exact edited message in the thread.
+
+### Test 4: Refund Request (HUMAN_APPROVAL -> Reject/Spam)
+- **Action**: Send an email:
+  - **Subject**: `Immediate Refund Needed`
+  - **Body**: `Please issue a full refund immediately for invoice #8892.`
+- **Expected Outcome**:
+  - Classified as `HUMAN_APPROVAL`.
+  - Admin reviews in Dashboard CRM and decides not to reply, or marks it handled externally. No email is sent.
+
+### Test 5: Marketing / Newsletter (NO_REPLY)
+- **Action**: Send an email:
+  - **Subject**: `Weekly Tech Trends & Industry News`
+  - **Body**: `Here are the top 10 trends you missed this week... Click here to unsubscribe.`
+- **Expected Outcome**:
+  - Classified as `NO_REPLY`.
+  - Routed to `Log No Reply` node.
+  - No email is sent and no Telegram alerts are triggered.
+
+### Test 6: Spam / Cold Outreach (SPAM)
+- **Action**: Send an email:
+  - **Subject**: `Boost your SEO traffic by 500%!`
+  - **Body**: `Hi, we noticed your website is struggling to rank on Google. Let us help you buy backlinks.`
+- **Expected Outcome**:
+  - Classified as `SPAM`.
+  - Routed directly to the Dashboard CRM's Spam folder.
+  - No email is sent and no Telegram alerts are triggered.
+
+---
+
 ## 📂 Directory Structure
 
 ```text
