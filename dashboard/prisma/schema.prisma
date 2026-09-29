@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Better Auth Tables ────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      Session[]
+  accounts      Account[]
+  reviews       Message[] @relation("ReviewedBy")
+  activities    ActivityLog[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verification")
+}
+
+// ─── Application Tables ────────────────────────────────────────────────────────
+
+enum Classification {
+  AUTO_REPLY
+  HUMAN_APPROVAL
+  NO_REPLY
+  SPAM
+}
+
+enum Priority {
+  High
+  Medium
+  Low
+}
+
+enum MessageStatus {
+  pending
+  approved
+  rejected
+  auto_sent
+  spam
+  ignored
+}
+
+enum NotificationType {
+  approval_needed
+  auto_reply_sent
+  new_spam
+  message_rejected
+  system
+}
+
+model Message {
+  id              String          @id @default(cuid())
+  gmailMessageId  String?
+  gmailThreadId   String?
+  senderName      String
+  senderEmail     String
+  subject         String
+  body            String
+  snippet         String?
+  receivedAt      DateTime        @default(now())
+  classification  Classification
+  priority        Priority        @default(Low)
+  aiReason        String?
+  aiSummary       String?
+  aiDraftResponse String?
+  finalResponse   String?
+  status          MessageStatus   @default(pending)
+  reviewedById    String?
+  reviewedAt      DateTime?
+  reviewerNotes   String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  reviewedBy    User?          @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  notifications Notification[]
+  activities    ActivityLog[]
+
+  @@index([classification])
+  @@index([status])
+  @@index([priority])
+  @@index([receivedAt])
+  @@index([senderEmail])
+  @@map("message")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  body      String
+  messageId String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  message Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notification")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  action    String
+  messageId String?
+  userId    String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  message Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User?    @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@map("activity_log")
+}

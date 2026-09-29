@@ -1,8 +1,14 @@
 # Environment variables
 .env
+.env.local
 
 # Local directory mounted in n8n for test files
 local-files/
 
 # macOS system files
 .DS_Store
+
+# Dashboard
+dashboard/node_modules/
+dashboard/.next/
+dashboard/.env.local

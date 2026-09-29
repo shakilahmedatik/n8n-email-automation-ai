@@ -1,0 +1,400 @@
+{
+  "name": "Final Email Automation Workflow",
+  "nodes": [
+    {
+      "id": "b672c496-a37e-4c50-b981-ed95d46224a1",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        208
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "readStatus": "unread"
+        }
+      }
+    },
+    {
+      "id": "2cdea059-6173-4a13-9259-d36e01075f86",
+      "name": "AI Email Analyzer",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        208
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following incoming email message:\nSender Name: {{ $json.from?.value?.[0]?.name || ($json.from?.text && !$json.from.text.startsWith($json.from?.value?.[0]?.address || '@') ? $json.from.text.split('<')[0].replace(/\"/g, '').trim() : '') || 'Valued Customer' }}\nSender Email: {{ $json.from?.value?.[0]?.address || ($json.from?.text ? ($json.from.text.match(/<([^>]+)>/) ? $json.from.text.match(/<([^>]+)>/)[1] : $json.from.text) : '') || $json.from }}\nSubject: {{ $json.subject }}\nThread ID: {{ $json.threadId }}\nDate: {{ $json.date }}\n\nBody:\n{{ $json.text || $json.snippet }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an expert AI email triage and drafting agent.\n\nBUSINESS PROFILE & KNOWLEDGE BASE:\n- Organization / Company: Atik Automation\n- Office Hours: Monday to Friday, 9:00 AM \u2013 6:00 PM (GMT+6) (Closed on Saturday and Sunday)\n- Physical Location / Office Address: Dhaka, Bangladesh (Our team also operates globally and remotely)\n- Contact Email: support@atikautomation.com\n- Services: AI workflow automation, email management systems, and technical consulting\n- Default Sign-off / Signature:\nBest regards,\nAtik & The Automation Team\n\nRESPONSE DRAFTING RULES:\n- Greet the sender personally by their actual name from \"Sender Name\" (e.g., \"Dear Atik,\" or \"Hi Atik,\"). If the name is \"Valued Customer\" or unknown, greet with \"Hi there,\" or \"Hello,\".\n- Use the concrete details from the BUSINESS PROFILE above to answer questions regarding office hours, office address/location, contact info, or general company questions.\n- STRICT PROHIBITION ON PLACEHOLDERS: NEVER use bracketed placeholders like \"[Sender's Name]\", \"[Office Address]\", \"[Your Name]\", \"[Company Name]\", or \"[Link]\". All details must be fully filled in and ready to be dispatched to the recipient without human editing.\n- Write in a polite, professional, and helpful tone.\n- Use standard paragraphs with double newlines between paragraphs.\n\nCLASSIFICATION RULES:\n\n1. AUTO_REPLY (Direct Automated Reply):\n   - Select this ONLY when the sender is asking a genuine question or request that requires an email response, and can be safely answered directly by AI (e.g. office hours, address/location, FAQs, public info, routine updates, or greetings accompanied by a question).\n   - The email MUST expect a reply. draft_response MUST contain a complete, courteous, ready-to-send answer.\n   - If the email does NOT need an answer (such as a simple \"Thank you\" or acknowledgment), do NOT select AUTO_REPLY!\n   - CRITICAL: AUTO_REPLY with an empty draft_response is STRICTLY FORBIDDEN. If you cannot write a meaningful reply, classify as NO_REPLY instead.\n\n2. HUMAN_APPROVAL (Requires Human Review):\n   - Select this whenever the email requires human judgment, special authority, or triggers ANY Mandatory Human Approval Rule below.\n   - You MUST generate a professional, context-aware preliminary draft in draft_response for the human reviewer.\n\n3. NO_REPLY (Silently Ignore - No Response Needed):\n   - Select this for ANY email where NO response should be sent back. This includes:\n     a) Conversational acknowledgments & pleasantries that do NOT ask any new questions or expect any response. Examples:\n        - \"Thank you!\", \"Thanks!\", \"Thank you for your response\"\n        - \"Got it, thanks!\", \"Noted\", \"Understood\", \"Acknowledged\"\n        - \"Okay, sounds good\", \"Perfect, thanks!\", \"Great, thank you!\"\n        - \"Have a great day\", \"Happy holidays!\"\n        - Short replies to a previous answer that simply confirm receipt without asking anything new\n     b) Automated / Transactional mail: Newsletters, marketing campaigns, spam, cold sales pitches, automated receipts, system alerts, no-reply transactional notifications, or delivery failure notices.\n   - draft_response MUST be an empty string (\"\").\n   - NEVER select AUTO_REPLY if draft_response is empty! If no response is needed, it is ALWAYS NO_REPLY.\n\nMANDATORY HUMAN APPROVAL RULES:\nYou MUST classify as HUMAN_APPROVAL (Priority: High or Medium) if the email involves ANY of the following:\n- Pricing, quotes, discounts, rates, or financial proposals\n- Contracts, agreements, NDAs, terms, legal matters, or disputes\n- Refunds, billing issues, chargebacks, or claims\n- Complaints, dissatisfaction, or escalations\n- Business negotiations or partnership terms\n- Deadlines, milestones, or project commitments\n- Sensitive, proprietary, or confidential data\n- Important or VIP client communications\n\nCRITICAL CONSTRAINTS & VALIDATION CHECKLIST (apply BEFORE returning):\n- If classification is AUTO_REPLY \u2192 draft_response MUST be a non-empty, complete, ready-to-send email. If it is empty, CHANGE classification to NO_REPLY.\n- If classification is HUMAN_APPROVAL \u2192 draft_response MUST be a non-empty preliminary draft for the reviewer.\n- If classification is NO_REPLY \u2192 draft_response MUST be exactly an empty string \"\".\n- NEVER return AUTO_REPLY with an empty draft_response. This is the single most important rule.\n\nYou MUST return a valid JSON object matching the schema with these exact 5 fields:\n- classification: Exactly \"AUTO_REPLY\", \"HUMAN_APPROVAL\", \"NO_REPLY\", or \"SPAM\" or \"SPAM\"\n- priority: Exactly \"High\", \"Medium\", or \"Low\"\n- reason: Concise explanation of why this classification and priority were chosen\n- summary: A 1-2 sentence executive summary of the email\n- draft_response: The response draft (or empty string \"\" for NO_REPLY)\n4. SPAM (Junk, Phishing, Malicious):\n   - Select this for unsolicited marketing, scams, phishing, or offensive messages.\n   - draft_response MUST be empty."
+        }
+      }
+    },
+    {
+      "id": "ca72da34-dfc0-47d5-9dba-97237d36e751",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        240,
+        432
+      ],
+      "parameters": {
+        "model": "openai/gpt-4o-mini",
+        "options": {
+          "temperature": 0.1
+        }
+      }
+    },
+    {
+      "id": "985eb907-bd53-4202-82a3-16526f5353ba",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        368,
+        432
+      ],
+      "parameters": {
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\"classification\":\"HUMAN_APPROVAL\",\"priority\":\"High\",\"reason\":\"Involves pricing and contract terms requiring mandatory human review\",\"summary\":\"Client requested enterprise pricing and contract quotation for 50 seats\",\"draft_response\":\"Hello,\\n\\nThank you for reaching out to us. We have received your inquiry regarding enterprise contract terms and pricing for 50 seats. Our account executive is reviewing your requirements and will provide a detailed proposal shortly.\\n\\nBest regards,\\nSales Team\"}"
+      }
+    },
+    {
+      "id": "ee35375d-60bb-4568-bcdb-84bae4ea4956",
+      "name": "Route by Classification",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        576,
+        192
+      ],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "outputKey": "AUTO_REPLY",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ (() => { const ai = $('AI Email Analyzer').item.json.output || $('AI Email Analyzer').item.json; const cls = ai.classification || ''; const draft = String(ai.draft_response || '').trim(); return cls === 'AUTO_REPLY' && draft.length === 0 ? 'NO_REPLY' : cls; })() }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "AUTO_REPLY"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "HUMAN_APPROVAL",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('AI Email Analyzer').item.json.output?.classification || $('AI Email Analyzer').item.json.classification }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "HUMAN_APPROVAL"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "SPAM",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('AI Email Analyzer').item.json.output?.classification || $('AI Email Analyzer').item.json.classification }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "SPAM"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "NO_REPLY"
+        }
+      }
+    },
+    {
+      "id": "e555b827-76c9-40f1-80ef-ffb5391ee401",
+      "name": "Send Auto Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "reply",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "emailType": "html",
+        "message": "={{ (($('AI Email Analyzer').item.json.output || $('AI Email Analyzer').item.json).draft_response)?.replace(/\\n/g, '<br>') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "webhookId": "d8761c8b-c462-451f-874a-977ecbe223e0"
+    },
+    {
+      "id": "d9f78d42-2bfa-449a-97a8-9caf714e875c",
+      "name": "Notify Auto Reply Dispatched",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1024,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$env.TELEGRAM_CHAT_ID}}",
+        "text": "=\ud83e\udd16 <b>Auto-Reply Sent</b>\n\n<b>To:</b> {{ $('Gmail Trigger').item.json.from?.value?.[0]?.name ? ($('Gmail Trigger').item.json.from.value[0].name + ' (' + $('Gmail Trigger').item.json.from.value[0].address + ')') : ($('Gmail Trigger').item.json.from?.value?.[0]?.address || $('Gmail Trigger').item.json.from?.text?.replace(/</g, '(').replace(/>/g, ')') || $('Gmail Trigger').item.json.from) }}\n<b>Subject:</b> {{ $('Gmail Trigger').item.json.subject }}\n<b>Priority:</b> {{ ($('AI Email Analyzer').item.json.output || $('AI Email Analyzer').item.json).priority }}\n<b>Reason:</b> {{ ($('AI Email Analyzer').item.json.output || $('AI Email Analyzer').item.json).reason }}\n\n<b>Response:</b>\n{{ ($('AI Email Analyzer').item.json.output || $('AI Email Analyzer').item.json).draft_response }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false
+        }
+      },
+      "webhookId": "e3452435-6856-42bb-ad9e-7f31c998dfec"
+    },
+    {
+      "id": "fcd0fcff-3d9c-4e92-8e8f-ef4574cf7ad9",
+      "name": "Send to Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        400,
+        208
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://dashboard-web:3000/api/webhooks/message-analyzed",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-webhook-secret",
+              "value": "n8n-dashboard-shared-secret-change-me"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { gmailMessageId: $('Gmail Trigger').item.json.id, gmailThreadId: $('Gmail Trigger').item.json.threadId, senderName: $('Gmail Trigger').item.json.from?.value?.[0]?.name || '', senderEmail: $('Gmail Trigger').item.json.from?.value?.[0]?.address || '', subject: $('Gmail Trigger').item.json.subject, body: $('Gmail Trigger').item.json.text || '', snippet: $('Gmail Trigger').item.json.snippet || '', receivedAt: $('Gmail Trigger').item.json.date, classification: $json.output?.classification || $json.classification, priority: $json.output?.priority || $json.priority, aiReason: $json.output?.reason || $json.reason, aiSummary: $json.output?.summary || $json.summary, aiDraftResponse: $json.output?.draft_response || $json.draft_response } }}"
+      }
+    },
+    {
+      "id": "16f7612b-bcdb-4cd8-b4c6-738953375d7e",
+      "name": "Notify Approval Needed",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        200
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{$env.TELEGRAM_CHAT_ID}}",
+        "text": "={{ '\u26a0\ufe0f *Approval Needed*\\n\\n*From:* ' + $('Gmail Trigger').item.json.from?.value?.[0]?.address + '\\n*Subject:* ' + $('Gmail Trigger').item.json.subject + '\\n\\nPlease review and approve in the dashboard.' }}"
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "telegramApi",
+          "name": "Telegram API"
+        }
+      }
+    },
+    {
+      "id": "484f3f69-a183-407b-93a1-3cc9d1f49e2d",
+      "name": "Webhook (Dashboard Response)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        600
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dashboard-response",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "dashboard-response"
+    },
+    {
+      "id": "e43c0959-ccb1-4b79-b89b-7f3482b12acf",
+      "name": "Send Approved Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        250,
+        600
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "reply",
+        "messageId": "={{ $json.body.gmailMessageId }}",
+        "emailType": "html",
+        "message": "={{ $json.body.finalResponse.replace(/\\n/g, '<br>') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmailOAuth2",
+          "name": "Gmail OAuth2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Email Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Email Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Email Analyzer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Email Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Send to Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Route by Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Classification": {
+      "main": [
+        [
+          {
+            "node": "Send Auto Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Approval Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Auto Reply": {
+      "main": [
+        [
+          {
+            "node": "Notify Auto Reply Dispatched",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook (Dashboard Response)": {
+      "main": [
+        [
+          {
+            "node": "Send Approved Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "id": "final-workflow-1"
+}

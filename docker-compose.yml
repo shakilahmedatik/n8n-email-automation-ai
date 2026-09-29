@@ -23,6 +23,7 @@ services:
       - NODE_FUNCTION_ALLOW_EXTERNAL=*
       # Optional: set encryption key for reproducible credential backups
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
     volumes:
       - n8n_data:/home/node/.n8n
       - ./local-files:/files
@@ -33,6 +34,60 @@ services:
       retries: 5
       start_period: 20s
 
+  # ─── Dashboard Database ───────────────────────────────────────────────────────
+  dashboard-db:
+    image: postgres:16-alpine
+    container_name: dashboard-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: dashboard
+      POSTGRES_PASSWORD: dashboard_secret
+      POSTGRES_DB: dashboard_db
+    volumes:
+      - dashboard_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dashboard -d dashboard_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  dashboard-init:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+      target: builder
+    container_name: dashboard-init
+    depends_on:
+      dashboard-db:
+        condition: service_healthy
+    command: >
+      sh -c "npx prisma db push --accept-data-loss"
+    environment:
+      - DATABASE_URL=postgresql://dashboard:dashboard_secret@dashboard-db:5432/dashboard_db
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: dashboard-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://dashboard:dashboard_secret@dashboard-db:5432/dashboard_db
+      - BETTER_AUTH_SECRET=change-me-to-a-random-secret-at-least-32-chars
+      - BETTER_AUTH_URL=http://localhost:3000
+      - N8N_WEBHOOK_URL=http://n8n:5678
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - WEBHOOK_SECRET=n8n-dashboard-shared-secret-change-me
+    depends_on:
+      dashboard-db:
+        condition: service_healthy
 volumes:
   n8n_data:
     name: n8n_local_data
+  dashboard_db_data:
+    name: dashboard_db_data
